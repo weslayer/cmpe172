@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: equipment-rental
+
+  # Datasource is driven by environment variables, with local-dev defaults that
+  # match docker-compose.yml. Do NOT put real credentials here or in Git.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/rental}
+    username: ${DB_USERNAME:rental}
+    password: ${DB_PASSWORD:rental}
+    driver-class-name: org.postgresql.Driver
+
+  # Liquibase is the ONLY database initializer.
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+
+  # Disable Spring's separate SQL initialization so it never competes with Liquibase.
+  sql:
+    init:
+      mode: never
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false   # emit ISO-8601 strings
+
+server:
+  port: 8080
+
+# Health/metrics surface (expanded in Milestone 3).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.cmpe172.rental: INFO

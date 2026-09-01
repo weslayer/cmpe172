@@ -1,0 +1,24 @@
+# Local development PostgreSQL for the equipment-rental project.
+# These credentials are non-secret dev defaults only. They match the fallback
+# values in application.yml. Override via a .env file / environment for anything
+# beyond local development.
+services:
+  db:
+    image: postgres:16
+    container_name: rental-postgres
+    environment:
+      POSTGRES_DB: rental
+      POSTGRES_USER: rental
+      POSTGRES_PASSWORD: rental
+    ports:
+      - "5432:5432"
+    volumes:
+      - rental_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rental -d rental"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rental_pgdata:
