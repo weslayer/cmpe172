@@ -1,0 +1,24 @@
+# Liquibase master changelog (the only database initializer).
+databaseChangeLog:
+  - changeSet:
+      id: 001-schema
+      author: cmpe172
+      comment: Create the five core tables, constraints, and the double-booking guard.
+      changes:
+        - sqlFile:
+            path: schema.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            endDelimiter: ;
+            stripComments: false
+  - changeSet:
+      id: 002-seed
+      author: cmpe172
+      comment: Load sample users, provider, equipment, slots, and one appointment.
+      changes:
+        - sqlFile:
+            path: seed.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            endDelimiter: ;
+            stripComments: false
