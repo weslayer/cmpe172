@@ -36,3 +36,9 @@ target/
 .settings/
 .project
 .classpath
+
+# Lecture slides (course material, not for the repo)
+/slides
+
+# Claude Code local project config (personal, not shared)
+.claude/
