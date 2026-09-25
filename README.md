@@ -47,6 +47,25 @@ The running skeleton with two read endpoints:
    curl "http://localhost:8080/api/slots?serviceId=1&date=2026-09-06"
    ```
 
+If a database volume was created from an older version of the schema, Liquibase
+refuses to start because the changeset checksums differ. The volume only holds
+seed data, so recreate it:
+
+```bash
+docker compose down -v
+```
+
+## Tests
+
+```bash
+mvn test
+```
+
+Controller and service tests run without a database. Repository tests run
+against Postgres (start `db` first) and assert against the seed data. CI runs
+the same suite against a Postgres service container on every push and pull
+request.
+
 ## Configuration
 
 The datasource is read from environment variables, with local-dev defaults that
@@ -68,7 +87,7 @@ set real values in the shell environment before running.
 src/main/java/com/cmpe172/rental/
 ├── controller/   REST endpoints (routed by the DispatcherServlet front controller)
 ├── service/      business logic, DTO assembly
-├── repository/   SQL over JDBC (JdbcTemplate / NamedParameterJdbcTemplate)
+├── repository/   parameterized SQL over JDBC (NamedParameterJdbcTemplate)
 ├── dto/          API response records
 ├── model/        domain types (populated in M2)
 ├── config/       exception handling and config
@@ -78,6 +97,8 @@ src/main/resources/db/changelog/
 ├── db.changelog-master.yaml   Liquibase master (the only DB initializer)
 ├── schema.sql                 tables, constraints, double-booking guard
 └── seed.sql                   sample data
+
+src/test/java/com/cmpe172/rental/   controller, service, and repository tests
 ```
 
 ## Database
@@ -93,5 +114,12 @@ guard is a partial unique index on `appointments`; see [docs/schema.md](docs/sch
 - [ER diagram](docs/er-diagram.md)
 - [Relational schema](docs/schema.md)
 - [Request flow & Page vs Front Controller](docs/request-flow.md)
-- [Code-walkthrough outline](docs/code-walkthrough.md)
+- [Code-walkthrough script](docs/code-walkthrough.md)
 - Wireframes — `docs/wireframes.html`
+
+## Milestone 1 deliverables
+
+Rendered submission files live in [`deliverables/milestone1/`](deliverables/milestone1/):
+the report PDF, the ER diagram (PNG and SVG), and the wireframes (PDF and one PNG
+per screen). The report source is `deliverables/milestone1/report.html`. To
+regenerate the PDF, open that file in a browser and print it to PDF.
