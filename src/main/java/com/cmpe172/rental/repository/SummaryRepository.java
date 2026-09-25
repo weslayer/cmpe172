@@ -2,8 +2,9 @@ package com.cmpe172.rental.repository;
 
 import com.cmpe172.rental.dto.FeaturedEquipmentDto;
 import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.Map;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -17,9 +18,9 @@ public class SummaryRepository {
             rs.getBigDecimal("daily_rate"),
             rs.getString("business_name"));
 
-    private final JdbcTemplate jdbc;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public SummaryRepository(JdbcTemplate jdbc) {
+    public SummaryRepository(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
@@ -31,17 +32,6 @@ public class SummaryRepository {
         return count("SELECT count(*) FROM services WHERE status = 'ACTIVE'");
     }
 
-    public long countAvailableSlots() {
-        return count("""
-                SELECT count(*) FROM availability_slots s
-                WHERE s.status = 'OPEN'
-                  AND NOT EXISTS (
-                      SELECT 1 FROM appointments a
-                      WHERE a.availability_slot_id = s.id
-                        AND a.status IN ('PENDING', 'CONFIRMED'))
-                """);
-    }
-
     public List<FeaturedEquipmentDto> findFeatured(int limit) {
         return jdbc.query("""
                 SELECT sv.id, sv.name, sv.category, sv.asset_tag, sv.daily_rate, p.business_name
@@ -49,12 +39,12 @@ public class SummaryRepository {
                 JOIN providers p ON p.id = sv.provider_id
                 WHERE sv.status = 'ACTIVE'
                 ORDER BY sv.id
-                LIMIT ?
-                """, FEATURED, limit);
+                LIMIT :limit
+                """, Map.of("limit", limit), FEATURED);
     }
 
     private long count(String sql) {
-        Long n = jdbc.queryForObject(sql, Long.class);
+        Long n = jdbc.queryForObject(sql, Map.of(), Long.class);
         return n == null ? 0 : n;
     }
 }

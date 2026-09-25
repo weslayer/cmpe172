@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.cmpe172.rental.dto.FeaturedEquipmentDto;
 import com.cmpe172.rental.dto.HomeSummaryDto;
+import com.cmpe172.rental.repository.SlotRepository;
 import com.cmpe172.rental.repository.SummaryRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,7 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class HomeServiceTest {
 
     @Mock
-    private SummaryRepository repository;
+    private SummaryRepository summaryRepository;
+
+    @Mock
+    private SlotRepository slotRepository;
 
     @InjectMocks
     private HomeService service;
@@ -27,10 +31,10 @@ class HomeServiceTest {
     void assemblesSummaryFromRepositoryCounts() {
         FeaturedEquipmentDto featured = new FeaturedEquipmentDto(
                 1, "Drill", "Power Tools", "PT-DRILL-001", new BigDecimal("15.00"), "Bay Area Equipment Rentals");
-        when(repository.countProviders()).thenReturn(1L);
-        when(repository.countActiveEquipment()).thenReturn(6L);
-        when(repository.countAvailableSlots()).thenReturn(12L);
-        when(repository.findFeatured(4)).thenReturn(List.of(featured));
+        when(summaryRepository.countProviders()).thenReturn(1L);
+        when(summaryRepository.countActiveEquipment()).thenReturn(6L);
+        when(slotRepository.countAvailable(null, null, null)).thenReturn(12L);
+        when(summaryRepository.findFeatured(4)).thenReturn(List.of(featured));
 
         HomeSummaryDto result = service.summary();
 
