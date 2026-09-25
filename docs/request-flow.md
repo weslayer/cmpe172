@@ -14,16 +14,16 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     C->>DS: GET /api/slots?...
-    DS->>Ctrl: route to slots(...)
-    Note over Ctrl: bind params, validate (@Min/@Max)
-    Ctrl->>Svc: findAvailable(serviceId, providerId, date, page, size)
-    Svc->>Repo: findAvailable(...) + countAvailable(...)
-    Repo->>DB: SELECT ... LIMIT/OFFSET  (JDBC)
+    DS->>Ctrl: dispatch to slots(...)
+    Note over Ctrl: bind + validate params
+    Ctrl->>Svc: findAvailable(filters, page, size)
+    Svc->>Repo: findAvailable + countAvailable
+    Repo->>DB: SELECT ... LIMIT / OFFSET
     DB-->>Repo: rows
     Repo-->>Svc: List<SlotDto>, total
     Svc-->>Ctrl: PageResponse<SlotDto>
-    Ctrl-->>DS: PageResponse (serialized to JSON)
-    DS-->>C: 200 OK + JSON
+    Ctrl-->>DS: PageResponse DTO
+    DS-->>C: 200 OK, JSON
 ```
 
 1. **DispatcherServlet** (Spring's front controller) receives the request and

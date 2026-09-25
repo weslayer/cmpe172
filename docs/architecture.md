@@ -3,11 +3,10 @@
 ## Block diagram
 
 ```mermaid
-flowchart LR
+flowchart TB
     client["Client (SPA / HTTP)"]
 
     subgraph app["Spring Boot application"]
-        direction TB
         fc["DispatcherServlet (Front Controller)"]
         ctrl["Controller layer"]
         svc["Service layer"]
@@ -36,7 +35,7 @@ extension, shown here to mark the external-service boundary.
 | Front Controller | *(Spring)* | `DispatcherServlet` receives every request and routes it to a handler |
 | Controller | `controller` | HTTP mapping, parameter binding, input validation |
 | Service | `service` | Business logic; assembles DTOs (e.g. wraps results in a page) |
-| Repository | `repository` | SQL over `JdbcTemplate` / `NamedParameterJdbcTemplate` |
+| Repository | `repository` | Parameterized SQL over `NamedParameterJdbcTemplate` |
 | Database | PostgreSQL | Tables, constraints, and the double-booking guard |
 
 DTOs (`dto`) cross the wire; `model`, `config`, and `notification` round out the
