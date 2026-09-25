@@ -12,11 +12,16 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class SlotRepository {
 
+    private static final String SELECT_COLUMNS = """
+            SELECT s.id, s.service_id, sv.name, sv.category, sv.asset_tag,
+                   sv.provider_id, p.business_name, sv.daily_rate, s.starts_at, s.ends_at
+            """;
+
     // A slot is available when it is OPEN and has no active (PENDING/CONFIRMED) appointment.
     private static final String FROM_AVAILABLE = """
             FROM availability_slots s
             JOIN services sv ON sv.id = s.service_id
-            JOIN providers p ON p.id = s.provider_id
+            JOIN providers p ON p.id = sv.provider_id
             WHERE s.status = 'OPEN'
               AND NOT EXISTS (
                   SELECT 1 FROM appointments a
@@ -44,9 +49,7 @@ public class SlotRepository {
 
     public List<SlotDto> findAvailable(Long serviceId, Long providerId, LocalDate date, int page, int size) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        String sql = "SELECT s.id, s.service_id, sv.name, sv.category, sv.asset_tag, "
-                + "s.provider_id, p.business_name, sv.daily_rate, s.starts_at, s.ends_at "
-                + FROM_AVAILABLE + filters(serviceId, providerId, date, params)
+        String sql = SELECT_COLUMNS + FROM_AVAILABLE + filters(serviceId, providerId, date, params)
                 + " ORDER BY s.starts_at, s.id LIMIT :size OFFSET :offset";
         params.addValue("size", size);
         params.addValue("offset", (long) page * size);
@@ -67,7 +70,7 @@ public class SlotRepository {
             params.addValue("serviceId", serviceId);
         }
         if (providerId != null) {
-            sb.append(" AND s.provider_id = :providerId");
+            sb.append(" AND sv.provider_id = :providerId");
             params.addValue("providerId", providerId);
         }
         if (date != null) {

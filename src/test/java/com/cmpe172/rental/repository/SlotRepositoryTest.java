@@ -37,6 +37,14 @@ class SlotRepositoryTest {
     }
 
     @Test
+    void filtersByProviderThroughTheOwningService() {
+        List<SlotDto> slots = repository.findAvailable(null, 1L, null, 0, 20);
+
+        assertThat(slots).hasSize(12).extracting(SlotDto::providerId).containsOnly(1L);
+        assertThat(repository.findAvailable(null, 99L, null, 0, 20)).isEmpty();
+    }
+
+    @Test
     void paginatesWithLimitAndOffset() {
         List<SlotDto> firstPage = repository.findAvailable(null, 1L, null, 0, 5);
         List<SlotDto> secondPage = repository.findAvailable(null, 1L, null, 1, 5);
