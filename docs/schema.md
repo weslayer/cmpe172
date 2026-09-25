@@ -46,7 +46,6 @@ All timestamps are `TIMESTAMPTZ`; identifiers are `BIGINT` identity columns.
 | --- | --- | --- |
 | id | bigint | PK |
 | service_id | bigint | NOT NULL, FK → services(id) |
-| provider_id | bigint | NOT NULL, FK → providers(id) |
 | starts_at | timestamptz | NOT NULL |
 | ends_at | timestamptz | NOT NULL |
 | status | varchar(20) | NOT NULL, CHECK ∈ {OPEN, BLOCKED} |
@@ -61,11 +60,19 @@ Table constraints: `CHECK (ends_at > starts_at)` and `UNIQUE (service_id, starts
 | id | bigint | PK |
 | availability_slot_id | bigint | NOT NULL, FK → availability_slots(id) |
 | customer_id | bigint | NOT NULL, FK → users(id) |
-| service_id | bigint | NOT NULL, FK → services(id) |
 | status | varchar(20) | NOT NULL, CHECK ∈ {PENDING, CONFIRMED, CANCELLED, COMPLETED} |
 | created_at | timestamptz | NOT NULL, default now() |
 
 Plus the partial unique index described below.
+
+## Normalization
+
+The schema is in third normal form: every non-key column depends only on its
+table's key. Facts that can be derived are not stored twice. A slot's provider
+comes from `availability_slots → services → providers`, and an appointment's
+equipment comes from `appointments → availability_slots → services`. Because
+these are joins rather than copied columns, a slot can never disagree with its
+equipment's provider, and an appointment can never disagree with its slot.
 
 ## Relationships and cardinality
 
