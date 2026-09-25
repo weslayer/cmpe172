@@ -27,13 +27,6 @@ spring:
 server:
   port: 8080
 
-# Health/metrics surface (expanded in Milestone 3).
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-
 logging:
   level:
     com.cmpe172.rental: INFO

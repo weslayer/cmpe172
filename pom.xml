@@ -40,12 +40,6 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Health / metrics endpoints (used lightly now, fully in M3) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
         <!-- Database migrations (the only DB initializer) -->
         <dependency>
             <groupId>org.liquibase</groupId>
