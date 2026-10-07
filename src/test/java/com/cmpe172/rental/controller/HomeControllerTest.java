@@ -5,16 +5,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.cmpe172.rental.config.SecurityConfig;
 import com.cmpe172.rental.dto.HomeSummaryDto;
+import com.cmpe172.rental.repository.UserRepository;
 import com.cmpe172.rental.service.HomeService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(HomeController.class)
+@Import(SecurityConfig.class)
 class HomeControllerTest {
 
     @Autowired
@@ -22,6 +26,9 @@ class HomeControllerTest {
 
     @MockitoBean
     private HomeService service;
+
+    @MockitoBean
+    private UserRepository users;
 
     @Test
     void returnsSummaryFromService() throws Exception {

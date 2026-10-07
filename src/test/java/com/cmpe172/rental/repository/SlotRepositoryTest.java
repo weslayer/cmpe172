@@ -8,7 +8,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * the fixed seed data in seed.sql — see that file for the slot/appointment
  * layout being asserted on here.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.NONE)
+@SpringBootTest
 class SlotRepositoryTest {
 
     @Autowired
