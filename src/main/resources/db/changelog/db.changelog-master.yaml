@@ -22,3 +22,25 @@ databaseChangeLog:
             splitStatements: true
             endDelimiter: ;
             stripComments: false
+  - changeSet:
+      id: 003-booking-status
+      author: cmpe172
+      comment: Switch appointment statuses to BOOKED / CANCELLED / COMPLETED and re-key the double-booking guard.
+      changes:
+        - sqlFile:
+            path: booking-status.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            endDelimiter: ;
+            stripComments: false
+  - changeSet:
+      id: 004-seed-m2
+      author: cmpe172
+      comment: Move seed slots into the future, add a second customer and one completed rental.
+      changes:
+        - sqlFile:
+            path: seed-m2.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            endDelimiter: ;
+            stripComments: false

@@ -17,16 +17,17 @@ public class SlotRepository {
                    sv.provider_id, p.business_name, sv.daily_rate, s.starts_at, s.ends_at
             """;
 
-    // A slot is available when it is OPEN and has no active (PENDING/CONFIRMED) appointment.
+    // A slot is available when it is OPEN, still in the future, and has no BOOKED appointment.
     private static final String FROM_AVAILABLE = """
             FROM availability_slots s
             JOIN services sv ON sv.id = s.service_id
             JOIN providers p ON p.id = sv.provider_id
             WHERE s.status = 'OPEN'
+              AND s.starts_at > now()
               AND NOT EXISTS (
                   SELECT 1 FROM appointments a
                   WHERE a.availability_slot_id = s.id
-                    AND a.status IN ('PENDING', 'CONFIRMED'))
+                    AND a.status = 'BOOKED')
             """;
 
     private static final RowMapper<SlotDto> MAPPER = (rs, i) -> new SlotDto(

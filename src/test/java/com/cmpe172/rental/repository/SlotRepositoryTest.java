@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Runs against a real Postgres (local docker-compose db, or the CI service
@@ -22,6 +24,9 @@ class SlotRepositoryTest {
     @Autowired
     private SlotRepository repository;
 
+    @Autowired
+    private JdbcTemplate jdbc;
+
     @Test
     void excludesSlotsWithAnActiveAppointment() {
         List<SlotDto> slots = repository.findAvailable(1L, null, null, 0, 20);
@@ -31,7 +36,7 @@ class SlotRepositoryTest {
 
     @Test
     void filtersByServiceAndDate() {
-        List<SlotDto> slots = repository.findAvailable(1L, null, LocalDate.of(2026, 9, 6), 0, 20);
+        List<SlotDto> slots = repository.findAvailable(1L, null, LocalDate.of(2027, 9, 6), 0, 20);
 
         assertThat(slots).extracting(SlotDto::slotId).containsExactly(2L);
     }
@@ -59,5 +64,18 @@ class SlotRepositoryTest {
         long count = repository.countAvailable(1L, null, null);
 
         assertThat(count).isEqualTo(repository.findAvailable(1L, null, null, 0, 20).size());
+    }
+
+    @Test
+    @Transactional
+    void excludesSlotsThatAlreadyStarted() {
+        Long pastSlotId = jdbc.queryForObject("""
+                INSERT INTO availability_slots (service_id, starts_at, ends_at)
+                VALUES (1, now() - INTERVAL '2 days', now() - INTERVAL '1 day')
+                RETURNING id
+                """, Long.class);
+
+        assertThat(repository.findAvailable(1L, null, null, 0, 100))
+                .extracting(SlotDto::slotId).doesNotContain(pastSlotId);
     }
 }
