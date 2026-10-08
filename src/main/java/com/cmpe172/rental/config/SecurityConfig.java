@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -40,6 +39,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper json,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) throws Exception {
+        CookieCsrfTokenRepository csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/services").permitAll()
@@ -59,14 +59,18 @@ public class SecurityConfig {
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
-                        .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
+                        .logoutSuccessHandler((req, res, auth) -> {
+                            // logout clears the token; hand out a fresh one so the next sign-in can post
+                            csrfTokens.saveToken(csrfTokens.generateToken(req), req, res);
+                            res.setStatus(HttpStatus.NO_CONTENT.value());
+                        }))
                 // 401/403 go through the MVC resolver so GlobalExceptionHandler writes the usual error JSON.
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((req, res, ex) -> resolver.resolveException(req, res, null, ex))
                         .accessDeniedHandler((req, res, ex) -> resolver.resolveException(req, res, null, ex)))
                 // SPA-style CSRF: the browser reads the XSRF-TOKEN cookie and echoes it in X-XSRF-TOKEN.
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokens)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .addFilterAfter((req, res, chain) -> {
                     loadCsrfToken(req);

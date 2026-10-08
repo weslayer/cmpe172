@@ -7,10 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -36,6 +38,25 @@ class AuthIntegrationTest {
         mvc.perform(get("/api/auth/me").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("provider@example.com"));
+    }
+
+    @Test
+    void logoutHandsOutAFreshCsrfCookieSoTheNextLoginWorks() throws Exception {
+        MvcResult login = mvc.perform(login("customer@example.com", "password")).andExpect(status().isOk()).andReturn();
+        Cookie rotated = lastXsrfCookie(login.getResponse());
+
+        MockHttpServletResponse logout = mvc.perform(post("/api/auth/logout")
+                        .session((MockHttpSession) login.getRequest().getSession(false))
+                        .cookie(rotated)
+                        .header("X-XSRF-TOKEN", rotated.getValue()))
+                .andExpect(status().isNoContent())
+                .andReturn().getResponse();
+
+        Cookie fresh = lastXsrfCookie(logout);
+        assertThat(fresh.getValue()).isNotEmpty();
+        mvc.perform(post("/api/auth/login").cookie(fresh).header("X-XSRF-TOKEN", fresh.getValue())
+                        .param("email", "customer@example.com").param("password", "password"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -68,5 +89,11 @@ class AuthIntegrationTest {
                 .header("X-XSRF-TOKEN", xsrf.getValue())
                 .param("email", email)
                 .param("password", password);
+    }
+
+    // A response can clear the old token and set a new one; like a browser, keep the last cookie.
+    private static Cookie lastXsrfCookie(MockHttpServletResponse response) {
+        return Arrays.stream(response.getCookies()).filter(c -> c.getName().equals("XSRF-TOKEN"))
+                .reduce((first, second) -> second).orElseThrow();
     }
 }
