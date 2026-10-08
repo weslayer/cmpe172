@@ -58,6 +58,11 @@ public class AppointmentRepository {
                 Map.of("id", customerId), DTO);
     }
 
+    public List<AppointmentDto> findByProvider(long providerId) {
+        return jdbc.query(SELECT_DTO + " WHERE sv.provider_id = :id ORDER BY s.starts_at, a.id",
+                Map.of("id", providerId), DTO);
+    }
+
     public boolean existsBooked(long slotId) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""
                 SELECT EXISTS (SELECT 1 FROM appointments WHERE availability_slot_id = :id AND status = 'BOOKED')

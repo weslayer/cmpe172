@@ -1,6 +1,7 @@
 package com.cmpe172.rental.service;
 
 import com.cmpe172.rental.dto.HomeSummaryDto;
+import com.cmpe172.rental.repository.EquipmentRepository;
 import com.cmpe172.rental.repository.SlotRepository;
 import com.cmpe172.rental.repository.SummaryRepository;
 import org.springframework.stereotype.Service;
@@ -12,10 +13,13 @@ public class HomeService {
 
     private final SummaryRepository summaryRepository;
     private final SlotRepository slotRepository;
+    private final EquipmentRepository equipmentRepository;
 
-    public HomeService(SummaryRepository summaryRepository, SlotRepository slotRepository) {
+    public HomeService(SummaryRepository summaryRepository, SlotRepository slotRepository,
+            EquipmentRepository equipmentRepository) {
         this.summaryRepository = summaryRepository;
         this.slotRepository = slotRepository;
+        this.equipmentRepository = equipmentRepository;
     }
 
     public HomeSummaryDto summary() {
@@ -24,6 +28,6 @@ public class HomeService {
                 summaryRepository.countProviders(),
                 summaryRepository.countActiveEquipment(),
                 slotRepository.countAvailable(null, null, null),
-                summaryRepository.findFeatured(FEATURED_LIMIT));
+                equipmentRepository.findActive(null, FEATURED_LIMIT));
     }
 }

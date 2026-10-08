@@ -52,4 +52,8 @@ public class BookingService {
     public List<AppointmentDto> customerAppointments(long customerId) {
         return appointments.findByCustomer(customerId);
     }
+
+    public List<AppointmentDto> providerAppointments(long providerId) {
+        return appointments.findByProvider(providerId);
+    }
 }

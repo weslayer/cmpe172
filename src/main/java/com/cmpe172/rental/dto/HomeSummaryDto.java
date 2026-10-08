@@ -7,5 +7,5 @@ public record HomeSummaryDto(
         long providerCount,
         long equipmentCount,
         long availableSlotCount,
-        List<FeaturedEquipmentDto> featuredEquipment) {
+        List<EquipmentDto> featuredEquipment) {
 }

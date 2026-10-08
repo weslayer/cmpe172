@@ -77,4 +77,12 @@ class SlotControllerTest {
                         .param("date", "2026-09-06"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void listsEquipmentForAProvider() throws Exception {
+        when(service.equipment(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/services").param("providerId", "1"))
+                .andExpect(status().isOk());
+    }
 }

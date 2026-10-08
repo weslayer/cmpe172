@@ -37,7 +37,7 @@ class BookingTransactionTest {
     @Test
     void booksAnOpenFutureSlot() {
         AppointmentDto booked = mock(AppointmentDto.class);
-        when(slots.lock(5)).thenReturn(Optional.of(new Slot("OPEN", TOMORROW)));
+        when(slots.lock(5)).thenReturn(Optional.of(new Slot(1, "OPEN", TOMORROW)));
         when(appointments.insertBooked(5, 1)).thenReturn(9L);
         when(appointments.get(9)).thenReturn(booked);
 
@@ -53,21 +53,21 @@ class BookingTransactionTest {
 
     @Test
     void blockedSlotIsAConflict() {
-        when(slots.lock(5)).thenReturn(Optional.of(new Slot("BLOCKED", TOMORROW)));
+        when(slots.lock(5)).thenReturn(Optional.of(new Slot(1, "BLOCKED", TOMORROW)));
 
         assertThatThrownBy(() -> booking.book(1, 5)).isInstanceOf(ConflictException.class);
     }
 
     @Test
     void slotThatAlreadyStartedIsAConflict() {
-        when(slots.lock(5)).thenReturn(Optional.of(new Slot("OPEN", OffsetDateTime.now().minusHours(1))));
+        when(slots.lock(5)).thenReturn(Optional.of(new Slot(1, "OPEN", OffsetDateTime.now().minusHours(1))));
 
         assertThatThrownBy(() -> booking.book(1, 5)).isInstanceOf(ConflictException.class);
     }
 
     @Test
     void bookedSlotIsAConflictAndNothingIsInserted() {
-        when(slots.lock(5)).thenReturn(Optional.of(new Slot("OPEN", TOMORROW)));
+        when(slots.lock(5)).thenReturn(Optional.of(new Slot(1, "OPEN", TOMORROW)));
         when(appointments.existsBooked(5)).thenReturn(true);
 
         assertThatThrownBy(() -> booking.book(1, 5)).isInstanceOf(ConflictException.class);

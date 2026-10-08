@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.cmpe172.rental.dto.SlotDto;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +77,19 @@ class SlotRepositoryTest {
 
         assertThat(repository.findAvailable(1L, null, null, 0, 100))
                 .extracting(SlotDto::slotId).doesNotContain(pastSlotId);
+    }
+
+    @Test
+    @Transactional
+    void createdSlotIsAvailableUntilBlocked() {
+        OffsetDateTime start = OffsetDateTime.now().plusDays(60).withNano(0);
+        long id = repository.insert(3, start, start.plusHours(6));
+
+        assertThat(repository.get(id).serviceId()).isEqualTo(3);
+        assertThat(repository.findAvailable(3L, null, null, 0, 100)).extracting(SlotDto::slotId).contains(id);
+
+        repository.block(id);
+
+        assertThat(repository.findAvailable(3L, null, null, 0, 100)).extracting(SlotDto::slotId).doesNotContain(id);
     }
 }

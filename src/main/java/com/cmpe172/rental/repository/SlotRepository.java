@@ -20,11 +20,14 @@ public class SlotRepository {
                    sv.provider_id, p.business_name, sv.daily_rate, s.starts_at, s.ends_at
             """;
 
-    // A slot is available when it is OPEN, still in the future, and has no BOOKED appointment.
-    private static final String FROM_AVAILABLE = """
+    private static final String FROM_SLOTS = """
             FROM availability_slots s
             JOIN services sv ON sv.id = s.service_id
             JOIN providers p ON p.id = sv.provider_id
+            """;
+
+    // A slot is available when it is OPEN, still in the future, and has no BOOKED appointment.
+    private static final String FROM_AVAILABLE = FROM_SLOTS + """
             WHERE s.status = 'OPEN'
               AND s.starts_at > now()
               AND NOT EXISTS (
@@ -46,6 +49,7 @@ public class SlotRepository {
             rs.getObject("ends_at", OffsetDateTime.class));
 
     private static final RowMapper<Slot> LOCKED = (rs, i) -> new Slot(
+            rs.getLong("provider_id"),
             rs.getString("status"),
             rs.getObject("starts_at", OffsetDateTime.class));
 
@@ -75,8 +79,30 @@ public class SlotRepository {
     public Optional<Slot> lock(long slotId) {
         jdbc.getJdbcTemplate().execute("SET LOCAL lock_timeout = '2s'");
         return jdbc.query("""
-                SELECT status, starts_at FROM availability_slots WHERE id = :id FOR UPDATE
+                SELECT sv.provider_id, s.status, s.starts_at
+                FROM availability_slots s
+                JOIN services sv ON sv.id = s.service_id
+                WHERE s.id = :id
+                FOR UPDATE OF s
                 """, Map.of("id", slotId), LOCKED).stream().findFirst();
+    }
+
+    public SlotDto get(long slotId) {
+        return jdbc.queryForObject(SELECT_COLUMNS + FROM_SLOTS + " WHERE s.id = :id", Map.of("id", slotId), MAPPER);
+    }
+
+    // The table's unique (service, start, end) and end-after-start checks back this up.
+    public long insert(long serviceId, OffsetDateTime startsAt, OffsetDateTime endsAt) {
+        return jdbc.queryForObject("""
+                INSERT INTO availability_slots (service_id, starts_at, ends_at)
+                VALUES (:serviceId, :startsAt, :endsAt)
+                RETURNING id
+                """, Map.of("serviceId", serviceId, "startsAt", startsAt, "endsAt", endsAt), Long.class);
+    }
+
+    // Removal is a soft delete so past and cancelled appointments keep their slot.
+    public void block(long slotId) {
+        jdbc.update("UPDATE availability_slots SET status = 'BLOCKED' WHERE id = :id", Map.of("id", slotId));
     }
 
     private static String filters(Long serviceId, Long providerId, LocalDate date, MapSqlParameterSource params) {

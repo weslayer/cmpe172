@@ -2,6 +2,7 @@ package com.cmpe172.rental.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.cmpe172.rental.dto.AppointmentDto;
 import org.junit.jupiter.api.Test;
@@ -37,5 +38,13 @@ class AppointmentRepositoryTest {
         assertThat(repository.findByCustomer(1))
                 .extracting(AppointmentDto::status)
                 .containsExactly("COMPLETED", "BOOKED");
+    }
+
+    @Test
+    void providerSeesBookingsOnTheirEquipmentWithTheCustomer() {
+        assertThat(repository.findByProvider(1))
+                .extracting(AppointmentDto::status, AppointmentDto::customerEmail)
+                .containsExactly(tuple("COMPLETED", "customer@example.com"), tuple("BOOKED", "customer@example.com"));
+        assertThat(repository.findByProvider(99)).isEmpty();
     }
 }

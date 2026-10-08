@@ -1,11 +1,13 @@
 package com.cmpe172.rental.controller;
 
+import com.cmpe172.rental.dto.EquipmentDto;
 import com.cmpe172.rental.dto.PageResponse;
 import com.cmpe172.rental.dto.SlotDto;
 import com.cmpe172.rental.service.SlotService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,5 +34,10 @@ public class SlotController {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return service.findAvailable(serviceId, providerId, date, page, size);
+    }
+
+    @GetMapping("/services")
+    public List<EquipmentDto> services(@RequestParam(required = false) Long providerId) {
+        return service.equipment(providerId);
     }
 }
