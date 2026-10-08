@@ -1,9 +1,12 @@
 package com.cmpe172.rental.repository;
 
 import com.cmpe172.rental.dto.SlotDto;
+import com.cmpe172.rental.model.Slot;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -42,6 +45,10 @@ public class SlotRepository {
             rs.getObject("starts_at", OffsetDateTime.class),
             rs.getObject("ends_at", OffsetDateTime.class));
 
+    private static final RowMapper<Slot> LOCKED = (rs, i) -> new Slot(
+            rs.getString("status"),
+            rs.getObject("starts_at", OffsetDateTime.class));
+
     private final NamedParameterJdbcTemplate jdbc;
 
     public SlotRepository(NamedParameterJdbcTemplate jdbc) {
@@ -62,6 +69,14 @@ public class SlotRepository {
         String sql = "SELECT count(*) " + FROM_AVAILABLE + filters(serviceId, providerId, date, params);
         Long n = jdbc.queryForObject(sql, params, Long.class);
         return n == null ? 0 : n;
+    }
+
+    // Contenders for the same slot queue on this row lock; a waiter gives up after lock_timeout.
+    public Optional<Slot> lock(long slotId) {
+        jdbc.getJdbcTemplate().execute("SET LOCAL lock_timeout = '2s'");
+        return jdbc.query("""
+                SELECT status, starts_at FROM availability_slots WHERE id = :id FOR UPDATE
+                """, Map.of("id", slotId), LOCKED).stream().findFirst();
     }
 
     private static String filters(Long serviceId, Long providerId, LocalDate date, MapSqlParameterSource params) {
