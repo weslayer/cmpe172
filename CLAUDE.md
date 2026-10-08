@@ -9,7 +9,7 @@ under professional engineering discipline. Java 22, Spring Boot 3.4.x, Maven,
 PostgreSQL accessed via **plain JDBC** (`JdbcTemplate` / `NamedParameterJdbcTemplate`
 — no JPA/Hibernate/ORM), Liquibase as the sole schema initializer, Docker Compose
 for local Postgres. REST API, `DispatcherServlet` as front controller, no
-server-rendered views.
+server-rendered views; the UI is a React + Vite SPA in `frontend/`.
 
 See `README.md` for run instructions and `docs/` for architecture, ER diagram,
 schema, and request-flow docs. Don't restate that material here — read it there.
@@ -95,6 +95,7 @@ docker compose up -d db          # local Postgres
 mvn spring-boot:run              # run the app (Liquibase migrates + seeds on first run)
 mvn test                         # run tests
 mvn -q -DskipTests package       # build only
+npm --prefix frontend run dev    # SPA on :5173, proxies /api to :8080
 ```
 
 ## Git workflow

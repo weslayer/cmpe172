@@ -50,7 +50,7 @@ erDiagram
         bigint id PK
         bigint availability_slot_id FK
         bigint customer_id FK
-        varchar status "PENDING | CONFIRMED | CANCELLED | COMPLETED"
+        varchar status "BOOKED | CANCELLED | COMPLETED"
         timestamptz created_at
     }
 ```
