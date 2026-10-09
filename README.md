@@ -167,8 +167,6 @@ and [docs/concurrency.md](docs/concurrency.md).
 - [Relational schema](docs/schema.md)
 - [Request flow & Page vs Front Controller](docs/request-flow.md)
 - [Concurrency and transactions](docs/concurrency.md)
-- [Code-walkthrough script, Milestone 1](docs/code-walkthrough.md)
-- [Code-walkthrough script, Milestone 2](docs/code-walkthrough-m2.md)
 - Wireframes — `docs/wireframes.html`
 
 ## Milestone 1 deliverables
