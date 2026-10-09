@@ -175,3 +175,9 @@ Rendered submission files live in [`deliverables/milestone1/`](deliverables/mile
 the report PDF, the ER diagram (PNG and SVG), and the wireframes (PDF and one PNG
 per screen). The report source is `deliverables/milestone1/report.html`. To
 regenerate the PDF, open that file in a browser and print it to PDF.
+
+## Milestone 2 deliverables
+
+The report lives in [`deliverables/milestone2/`](deliverables/milestone2/) as
+`CMPE172_Milestone2_Report.docx` and the matching PDF. The concurrency design it
+describes is also in [docs/concurrency.md](docs/concurrency.md).
