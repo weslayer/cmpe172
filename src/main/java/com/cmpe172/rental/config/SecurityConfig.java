@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -45,6 +46,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/services", "/health").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/metrics").hasRole("ADMIN")
+                        // The mock notification service stands in for an external system; only this app may call it.
+                        .requestMatchers("/mock/**").access(
+                                new WebExpressionAuthorizationManager("hasIpAddress('127.0.0.1') or hasIpAddress('::1')"))
                         .requestMatchers("/api/appointments/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .anyRequest().authenticated())
@@ -72,7 +76,8 @@ public class SecurityConfig {
                 // SPA-style CSRF: the browser reads the XSRF-TOKEN cookie and echoes it in X-XSRF-TOKEN.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/mock/**")) // server-to-server call, no browser session
                 .addFilterAfter((req, res, chain) -> {
                     loadCsrfToken(req);
                     chain.doFilter(req, res);
