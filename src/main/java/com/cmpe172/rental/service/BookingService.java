@@ -1,13 +1,10 @@
 package com.cmpe172.rental.service;
 
 import com.cmpe172.rental.dto.AppointmentDto;
-import com.cmpe172.rental.model.Appointment;
 import com.cmpe172.rental.repository.AppointmentRepository;
-import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class BookingService {
@@ -35,18 +32,8 @@ public class BookingService {
         }
     }
 
-    @Transactional
     public AppointmentDto cancel(long customerId, long appointmentId) {
-        Appointment appointment = appointments.lock(appointmentId)
-                .orElseThrow(() -> new NotFoundException("Appointment " + appointmentId + " not found"));
-        if (appointment.customerId() != customerId) {
-            throw new ForbiddenException("Appointment " + appointmentId + " belongs to another customer");
-        }
-        if (!"BOOKED".equals(appointment.status()) || !appointment.startsAt().isAfter(OffsetDateTime.now())) {
-            throw new ConflictException("Appointment " + appointmentId + " can no longer be cancelled");
-        }
-        appointments.markCancelled(appointmentId);
-        return appointments.get(appointmentId);
+        return booking.cancel(customerId, appointmentId);
     }
 
     public List<AppointmentDto> customerAppointments(long customerId) {

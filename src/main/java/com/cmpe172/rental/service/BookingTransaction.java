@@ -1,6 +1,7 @@
 package com.cmpe172.rental.service;
 
 import com.cmpe172.rental.dto.AppointmentDto;
+import com.cmpe172.rental.model.Appointment;
 import com.cmpe172.rental.model.Slot;
 import com.cmpe172.rental.repository.AppointmentRepository;
 import com.cmpe172.rental.repository.SlotRepository;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-// One booking attempt = one transaction. BookingService retries it from outside the transaction.
+// Each method is one transaction. BookingService calls in from outside, so it can retry a booking attempt.
 @Service
 public class BookingTransaction {
 
@@ -33,5 +34,19 @@ public class BookingTransaction {
             throw new ConflictException("Slot " + slotId + " is already booked");
         }
         return appointments.get(appointments.insertBooked(slotId, customerId));
+    }
+
+    @Transactional
+    public AppointmentDto cancel(long customerId, long appointmentId) {
+        Appointment appointment = appointments.lock(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Appointment " + appointmentId + " not found"));
+        if (appointment.customerId() != customerId) {
+            throw new ForbiddenException("Appointment " + appointmentId + " belongs to another customer");
+        }
+        if (!"BOOKED".equals(appointment.status()) || !appointment.startsAt().isAfter(OffsetDateTime.now())) {
+            throw new ConflictException("Appointment " + appointmentId + " can no longer be cancelled");
+        }
+        appointments.markCancelled(appointmentId);
+        return appointments.get(appointmentId);
     }
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.cmpe172.rental.dto.AppointmentDto;
+import com.cmpe172.rental.model.Appointment;
 import com.cmpe172.rental.model.Slot;
 import com.cmpe172.rental.repository.AppointmentRepository;
 import com.cmpe172.rental.repository.SlotRepository;
@@ -72,5 +73,39 @@ class BookingTransactionTest {
 
         assertThatThrownBy(() -> booking.book(1, 5)).isInstanceOf(ConflictException.class);
         verify(appointments, never()).insertBooked(anyLong(), anyLong());
+    }
+
+    @Test
+    void cancelsOwnUpcomingBooking() {
+        AppointmentDto cancelled = mock(AppointmentDto.class);
+        when(appointments.lock(7)).thenReturn(Optional.of(new Appointment(1, "BOOKED", TOMORROW)));
+        when(appointments.get(7)).thenReturn(cancelled);
+
+        assertThat(booking.cancel(1, 7)).isSameAs(cancelled);
+        verify(appointments).markCancelled(7);
+    }
+
+    @Test
+    void cannotCancelAnotherCustomersBooking() {
+        when(appointments.lock(7)).thenReturn(Optional.of(new Appointment(1, "BOOKED", TOMORROW)));
+
+        assertThatThrownBy(() -> booking.cancel(4, 7)).isInstanceOf(ForbiddenException.class);
+        verify(appointments, never()).markCancelled(7);
+    }
+
+    @Test
+    void cannotCancelTwiceOrAfterTheStart() {
+        when(appointments.lock(7)).thenReturn(Optional.of(new Appointment(1, "CANCELLED", TOMORROW)));
+        when(appointments.lock(8)).thenReturn(Optional.of(new Appointment(1, "BOOKED", OffsetDateTime.now().minusHours(1))));
+
+        assertThatThrownBy(() -> booking.cancel(1, 7)).isInstanceOf(ConflictException.class);
+        assertThatThrownBy(() -> booking.cancel(1, 8)).isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void unknownAppointmentIsNotFound() {
+        when(appointments.lock(7)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> booking.cancel(1, 7)).isInstanceOf(NotFoundException.class);
     }
 }
