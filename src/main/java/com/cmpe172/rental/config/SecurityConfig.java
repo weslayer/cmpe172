@@ -44,6 +44,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/services", "/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**",
+                                "/slots", "/slots/*/book", "/login", "/me/appointments", "/provider").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/metrics").hasRole("ADMIN")
                         // The mock notification service stands in for an external system; only this app may call it.
@@ -53,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .anyRequest().authenticated())
                 .formLogin(login -> login
+                        .loginPage("/login") // the SPA's page; otherwise Spring's generated login page answers GET /login
                         .loginProcessingUrl("/api/auth/login")
                         .usernameParameter("email")
                         .successHandler((req, res, auth) -> {
