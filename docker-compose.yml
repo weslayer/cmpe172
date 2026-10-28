@@ -1,4 +1,6 @@
-# Local development PostgreSQL for the equipment-rental project.
+# Local stack for the equipment-rental project.
+#   docker compose up -d db       PostgreSQL only, for running the app with mvn spring-boot:run
+#   docker compose up --build     PostgreSQL plus the app image (API + React UI on :8080)
 # These credentials are non-secret dev defaults only. They match the fallback
 # values in application.yml. Override via a .env file / environment for anything
 # beyond local development.
@@ -19,6 +21,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  app:
+    build: .
+    container_name: rental-app
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/rental
+      DB_USERNAME: rental
+      DB_PASSWORD: rental
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs   # JSON log lines (with trace IDs) for log tooling
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
 
 volumes:
   rental_pgdata:
