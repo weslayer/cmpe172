@@ -3,6 +3,7 @@ package com.cmpe172.rental.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.cmpe172.rental.dto.AppointmentDto;
+import com.cmpe172.rental.notification.NotificationGateway;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 // Two real transactions against Postgres race for one fresh slot. Not @Transactional: each thread must commit.
 @SpringBootTest
@@ -27,6 +29,10 @@ class BookingConcurrencyTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    // This test is about the row lock; keep the winner's confirmation off the network.
+    @MockitoBean
+    private NotificationGateway notifications;
 
     private long slotId;
 

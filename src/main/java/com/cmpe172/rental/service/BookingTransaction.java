@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-// Each method is one transaction. BookingService calls in from outside, so it can retry a booking attempt.
+// Each method is one transaction. BookingService calls in from outside, so it can retry and notify after commit.
 @Service
 public class BookingTransaction {
 

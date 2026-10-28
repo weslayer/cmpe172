@@ -1,5 +1,5 @@
 /**
- * Notification boundary. Seam for the mock external confirmation service added in
- * Milestone 3; a no-op logging adapter stands in for now.
+ * Notification boundary. {@code NotificationGateway} is the app's only way to reach the
+ * notification service: one coarse-grained HTTP call with timeouts, retry, and a fallback.
  */
 package com.cmpe172.rental.notification;

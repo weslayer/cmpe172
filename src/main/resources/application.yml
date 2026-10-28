@@ -27,6 +27,12 @@ spring:
     serialization:
       write-dates-as-timestamps: false   # emit ISO-8601 strings
 
+  # Timeouts for the notification gateway's RestClient, so a slow notifier can't stall a booking for long.
+  http:
+    client:
+      connect-timeout: 1s
+      read-timeout: 1s
+
 server:
   port: 8080
 
@@ -42,6 +48,10 @@ management:
   endpoint:
     health:
       show-components: always   # component statuses (db, disk), no details
+
+# Where the notification gateway sends; the mock notification service runs inside this app.
+notification:
+  base-url: ${NOTIFICATION_URL:http://localhost:8080}
 
 logging:
   level:
