@@ -46,6 +46,17 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- Health endpoint and metrics (Micrometer), served in Prometheus text format -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Database migrations (the only DB initializer) -->
         <dependency>
             <groupId>org.liquibase</groupId>

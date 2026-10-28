@@ -42,8 +42,9 @@ public class SecurityConfig {
         CookieCsrfTokenRepository csrfTokens = CookieCsrfTokenRepository.withHttpOnlyFalse();
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/services").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/services", "/health").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/metrics").hasRole("ADMIN")
                         .requestMatchers("/api/appointments/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .anyRequest().authenticated())
