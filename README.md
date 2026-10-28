@@ -5,12 +5,15 @@ items and availability; customers book time slots. Double-booking is prevented b
 a row lock in the booking transaction, with a database constraint as the backstop.
 
 Java + Spring Boot, **SQL over JDBC (no ORM)**, PostgreSQL, Liquibase migrations,
-Spring Security session login, and a React single-page frontend.
+Spring Security session login, and a React single-page frontend. Booking and
+cancelling send a confirmation through a mock notification service, the app
+exposes a health check and Prometheus metrics, and the whole stack runs in Docker.
 
 ## API
 
 Milestone 1 added the two public read endpoints; Milestone 2 added login, booking,
-and the provider features.
+and the provider features; Milestone 3 added the notification boundary, health,
+and metrics.
 
 | Endpoint | Who | Returns |
 | --- | --- | --- |
@@ -26,6 +29,9 @@ and the provider features.
 | `POST /api/provider/slots` | provider | Creates a slot for one of my items |
 | `DELETE /api/provider/slots/{id}` | provider (owner) | Removes an unbooked slot (204) |
 | `GET /api/provider/appointments` | provider | Bookings on my equipment |
+| `GET /health` | anyone | `UP` with component statuses, including the database; 503 `DOWN` when it is unreachable |
+| `GET /metrics` | admin | All meters in Prometheus text format, including `rental_bookings_seconds{outcome}` |
+| `POST /mock/notifications` | the app itself (loopback) | Mock notification service: 202 new, 200 repeated key |
 
 `GET /api/slots` supports `serviceId`, `providerId`, `date` (YYYY-MM-DD),
 `page` (default 0), and `size` (default 20, max 100). Pagination uses SQL
@@ -38,6 +44,12 @@ a missing record, and 409 for a slot conflict. Stack traces are never returned.
 Every state-changing request needs the `XSRF-TOKEN` cookie value echoed in an
 `X-XSRF-TOKEN` header. Any API response sets that cookie; the frontend handles it.
 
+After a booking or cancellation commits, the app sends the customer a
+confirmation through `NotificationGateway` (1 s timeouts, three attempts, then a
+logged fallback). The booking succeeds even when the notification service is
+down. See [docs/architecture.md](docs/architecture.md#distribution-boundary) and
+[docs/operations.md](docs/operations.md).
+
 ## Seed accounts
 
 All seed accounts use the password `password`.
@@ -47,16 +59,25 @@ All seed accounts use the password `password`.
 | `customer@example.com` | Customer (one upcoming and one completed rental) |
 | `customer2@example.com` | Customer |
 | `provider@example.com` | Provider (owns all six items) |
-| `admin@example.com` | Admin (no admin features yet) |
+| `admin@example.com` | Admin (can read `/metrics`) |
 
 ## Prerequisites
 
-- JDK 22
-- Maven 3.9+
-- Node.js 20.19+ (for the frontend)
-- Docker (for local PostgreSQL)
+- Docker (for PostgreSQL, or to run everything)
+- For local development: JDK 22, Maven 3.9+, and Node.js 20.19+ or 22.12+ (for the frontend)
 
-## Run it
+## Run everything in Docker
+
+```bash
+docker compose up --build
+```
+
+This builds the app image (the React SPA is bundled into the Spring Boot jar)
+and starts it with PostgreSQL. Open <http://localhost:8080>. Logs come out as
+JSON (`docker compose logs app`), and `docker compose ps` shows the app's health.
+Stop any locally running app first, since both use port 8080.
+
+## Run it locally
 
 1. Start PostgreSQL:
 
@@ -87,6 +108,7 @@ The public endpoints can also be called directly:
 curl "http://localhost:8080/api/home"
 curl "http://localhost:8080/api/slots?page=0&size=3"
 curl "http://localhost:8080/api/slots?serviceId=1&date=2027-09-06"
+curl "http://localhost:8080/health"
 ```
 
 If a database volume was created from an older version of the schema, Liquibase
@@ -106,9 +128,11 @@ mvn test
 Controller and service tests run without a database. Repository, login, and
 concurrency tests run against Postgres (start `db` first) and assert against the
 seed data. `BookingConcurrencyTest` starts two threads that book the same slot at
-the same moment and checks that exactly one succeeds. CI runs the same suite
-against a Postgres service container on every push and pull request, then builds
-the frontend.
+the same moment and checks that exactly one succeeds.
+`NotificationDownIntegrationTest` points the gateway at a port where nothing
+listens and checks that a booking still returns 201 and is saved. CI runs the
+same suite against a Postgres service container on every push, then builds the
+Docker image.
 
 ## Configuration
 
@@ -121,6 +145,7 @@ credentials); `.env.example` lists them.
 | `DB_URL` | `jdbc:postgresql://localhost:5432/rental` |
 | `DB_USERNAME` | `rental` |
 | `DB_PASSWORD` | `rental` |
+| `NOTIFICATION_URL` | `http://localhost:8080` (the mock inside this app) |
 
 The defaults are non-secret local values. For anything beyond local development,
 set real values in the shell environment before running.
@@ -129,13 +154,14 @@ set real values in the shell environment before running.
 
 ```
 src/main/java/com/cmpe172/rental/
-├── controller/   REST endpoints (routed by the DispatcherServlet front controller)
-├── service/      business rules and transactions (booking, cancel, slots)
+├── controller/   REST endpoints (routed by the DispatcherServlet front controller), SPA deep links
+├── service/      business rules and transactions (booking, cancel, slots), commit-then-notify
 ├── repository/   parameterized SQL over JDBC (NamedParameterJdbcTemplate)
 ├── dto/          API request and response records
 ├── model/        session principal and rows read under a lock
 ├── config/       security and global exception handling
-└── notification/ notification boundary (populated in M3)
+└── notification/ NotificationGateway (timeout, retry, fallback)
+    └── mock/     the mock notification service (POST /mock/notifications)
 
 src/main/resources/db/changelog/
 ├── db.changelog-master.yaml   Liquibase master (the only DB initializer)
@@ -144,7 +170,10 @@ src/main/resources/db/changelog/
 ├── booking-status.sql         M2: BOOKED / CANCELLED / COMPLETED statuses
 └── seed-m2.sql                M2: future slots, second customer, real password hashes
 
-src/test/java/com/cmpe172/rental/   controller, service, repository, and concurrency tests
+src/test/java/com/cmpe172/rental/   controller, service, repository, notification, and concurrency tests
+
+Dockerfile                    SPA build → jar build → JRE runtime (non-root)
+docker-compose.yml            PostgreSQL, plus the app with a /health healthcheck
 
 frontend/                     React + Vite single-page app
 ├── src/api.js                fetch wrapper (session cookie, CSRF header, error JSON)
@@ -162,11 +191,12 @@ and [docs/concurrency.md](docs/concurrency.md).
 ## Documentation
 
 - [Proposal](docs/proposal.md)
-- [Architecture](docs/architecture.md)
+- [Architecture and distribution boundary](docs/architecture.md)
 - [ER diagram](docs/er-diagram.md)
 - [Relational schema](docs/schema.md)
 - [Request flow & Page vs Front Controller](docs/request-flow.md)
 - [Concurrency and transactions](docs/concurrency.md)
+- [Operations: logging, health, metrics, failure recovery](docs/operations.md)
 - Wireframes — `docs/wireframes.html`
 
 ## Milestone 1 deliverables
@@ -181,3 +211,12 @@ regenerate the PDF, open that file in a browser and print it to PDF.
 The report lives in [`deliverables/milestone2/`](deliverables/milestone2/) as
 `CMPE172_Milestone2_Report.docx` and the matching PDF. The concurrency design it
 describes is also in [docs/concurrency.md](docs/concurrency.md).
+
+## Milestone 3 deliverables
+
+The report and the distribution diagram live in
+[`deliverables/milestone3/`](deliverables/milestone3/) as
+`CMPE172_Milestone3_Report.docx`, the matching PDF, and
+`distribution-diagram.png`. The designs it describes are also in
+[docs/architecture.md](docs/architecture.md#distribution-boundary) and
+[docs/operations.md](docs/operations.md).

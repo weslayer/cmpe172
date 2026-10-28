@@ -8,8 +8,10 @@ Equipment-rental booking system, built as a CMPE 172 term project but developed
 under professional engineering discipline. Java 22, Spring Boot 3.4.x, Maven,
 PostgreSQL accessed via **plain JDBC** (`JdbcTemplate` / `NamedParameterJdbcTemplate`
 — no JPA/Hibernate/ORM), Liquibase as the sole schema initializer, Docker Compose
-for local Postgres. REST API, `DispatcherServlet` as front controller, no
-server-rendered views; the UI is a React + Vite SPA in `frontend/`.
+for local Postgres and for running the whole app (the `Dockerfile` bundles the
+built SPA into the jar). REST API, `DispatcherServlet` as front controller, no
+server-rendered views; the UI is a React + Vite SPA in `frontend/`. Actuator
+serves `/health` and Prometheus `/metrics`.
 
 See `README.md` for run instructions and `docs/` for architecture, ER diagram,
 schema, and request-flow docs. Don't restate that material here — read it there.
@@ -54,7 +56,10 @@ controller → service → repository → (JDBC / Postgres)
 - `model/` — domain types (populated as later milestones require them).
 - `config/` — cross-cutting config and `@RestControllerAdvice` exception
   handling.
-- `notification/` — notification boundary (populated in M3).
+- `notification/` — notification boundary: `NotificationGateway`, the only way
+  the app reaches the notification service (HTTP, after commit, never throws).
+  `notification/mock/` is the stand-in external service; nothing calls it
+  directly.
 
 Every package has a `package-info.java` describing its role — add one for any
 new package.
@@ -92,6 +97,7 @@ that matters (filters, pagination bounds, conflict/error paths).
 
 ```bash
 docker compose up -d db          # local Postgres
+docker compose up --build        # Postgres + the app image (API + SPA on :8080)
 mvn spring-boot:run              # run the app (Liquibase migrates + seeds on first run)
 mvn test                         # run tests
 mvn -q -DskipTests package       # build only

@@ -59,6 +59,8 @@ sequenceDiagram
     participant SR as SlotRepository
     participant AR as AppointmentRepository
     participant DB as PostgreSQL
+    participant NG as NotificationGateway
+    participant MN as Mock notification service
 
     UI->>API: api('/appointments', {method: 'POST', json: {slotId}})
     API->>V: POST /api/appointments + session cookie + X-XSRF-TOKEN
@@ -77,7 +79,11 @@ sequenceDiagram
     BT->>AR: insertBooked(slotId, customerId)
     AR->>DB: INSERT ... RETURNING id
     Note over BT: COMMIT (lock released)
-    BT-->>Ctrl: AppointmentDto
+    BT-->>BS: AppointmentDto
+    BS->>NG: send(NotificationRequest)
+    NG->>MN: POST /mock/notifications (1 s timeouts, up to 3 tries)
+    MN-->>NG: 202 Accepted (or a failure: logged, never thrown)
+    BS-->>Ctrl: AppointmentDto
     Ctrl-->>UI: 201 Created, JSON
     Note over UI: shows "Booking confirmed"
 ```
@@ -88,7 +94,8 @@ sequenceDiagram
    attaches the session cookie by itself; `api.js` copies the `XSRF-TOKEN` cookie
    into the `X-XSRF-TOKEN` header.
 3. The **Vite dev server** forwards everything under `/api` to Spring Boot on
-   port 8080, so the browser only ever talks to one origin.
+   port 8080, so the browser only ever talks to one origin. In the Docker image
+   there is no proxy: Spring Boot serves the built SPA and the API itself.
 4. The **Spring Security filter chain** rejects the request before any
    controller runs if the CSRF token is missing (403), there is no session
    (401), or the user is not a customer (403). Those errors are written by
@@ -103,8 +110,13 @@ sequenceDiagram
    appointment. A taken slot throws `ConflictException`, which becomes a 409.
    See [concurrency.md](concurrency.md) for why the lock and the check are
    separate statements.
-8. The new appointment is read back as an `AppointmentDto` and serialized to
-   JSON with status 201. Book.jsx swaps the form for the confirmation view.
+8. The new appointment is read back as an `AppointmentDto`. Once the
+   transaction has committed, **BookingService** hands a `NotificationRequest`
+   to **NotificationGateway**, which posts it to the mock notification service.
+   If that service is slow or down, the gateway retries, logs the failure, and
+   returns normally (see [architecture.md](architecture.md#distribution-boundary)).
+9. The `AppointmentDto` is serialized to JSON with status 201. Book.jsx swaps
+   the form for the confirmation view.
 
 Files: [`frontend/src/pages/Book.jsx`](../frontend/src/pages/Book.jsx)
 → [`frontend/src/api.js`](../frontend/src/api.js)
@@ -113,7 +125,9 @@ Files: [`frontend/src/pages/Book.jsx`](../frontend/src/pages/Book.jsx)
 → [`BookingService`](../src/main/java/com/cmpe172/rental/service/BookingService.java)
 → [`BookingTransaction`](../src/main/java/com/cmpe172/rental/service/BookingTransaction.java)
 → [`SlotRepository`](../src/main/java/com/cmpe172/rental/repository/SlotRepository.java)
-/ [`AppointmentRepository`](../src/main/java/com/cmpe172/rental/repository/AppointmentRepository.java).
+/ [`AppointmentRepository`](../src/main/java/com/cmpe172/rental/repository/AppointmentRepository.java)
+→ [`NotificationGateway`](../src/main/java/com/cmpe172/rental/notification/NotificationGateway.java)
+→ [`MockNotificationController`](../src/main/java/com/cmpe172/rental/notification/mock/MockNotificationController.java).
 
 ## Page Controller vs Front Controller
 
