@@ -9,9 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.cmpe172.rental.dto.AppointmentDto;
 import com.cmpe172.rental.repository.AppointmentRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.CannotAcquireLockException;
@@ -25,8 +26,14 @@ class BookingServiceTest {
     @Mock
     private AppointmentRepository appointments;
 
-    @InjectMocks
+    private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
+
     private BookingService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new BookingService(booking, appointments, meters);
+    }
 
     @Test
     void retriesALockTimeoutThenSucceeds() {
@@ -35,6 +42,7 @@ class BookingServiceTest {
 
         assertThat(service.book(1, 5)).isSameAs(booked);
         verify(booking, times(2)).book(1, 5);
+        assertThat(bookings("booked")).isEqualTo(1);
     }
 
     @Test
@@ -43,6 +51,7 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> service.book(1, 5)).isInstanceOf(CannotAcquireLockException.class);
         verify(booking, times(3)).book(1, 5);
+        assertThat(bookings("failed")).isEqualTo(1);
     }
 
     @Test
@@ -51,5 +60,10 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> service.book(1, 5)).isInstanceOf(ConflictException.class);
         verify(booking, times(1)).book(1, 5);
+        assertThat(bookings("conflict")).isEqualTo(1);
+    }
+
+    private long bookings(String outcome) {
+        return meters.get("rental.bookings").tag("outcome", outcome).timer().count();
     }
 }
