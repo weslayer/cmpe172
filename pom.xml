@@ -57,6 +57,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Trace IDs on every log line, carried to the notification service in a traceparent header (no exporter) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
         <!-- Database migrations (the only DB initializer) -->
         <dependency>
             <groupId>org.liquibase</groupId>

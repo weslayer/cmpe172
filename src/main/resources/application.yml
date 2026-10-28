@@ -48,6 +48,9 @@ management:
   endpoint:
     health:
       show-components: always   # component statuses (db, disk), no details
+  tracing:
+    sampling:
+      probability: 1.0   # trace every request; with no exporter, spans only feed the log trace IDs
 
 # Where the notification gateway sends; the mock notification service runs inside this app.
 notification:
