@@ -4,6 +4,7 @@ import com.cmpe172.rental.dto.NotificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -32,7 +33,8 @@ public class NotificationGateway {
                 log.error("Notification {} rejected with {}, not retrying", key, ex.getStatusCode());
                 return;
             } catch (RuntimeException ex) {
-                log.warn("Notification {} failed on attempt {}/{}: {}", key, attempt, MAX_ATTEMPTS, ex.getMessage());
+                log.warn("Notification {} failed on attempt {}/{}: {}", key, attempt, MAX_ATTEMPTS,
+                        NestedExceptionUtils.getMostSpecificCause(ex).toString());
             }
             if (attempt < MAX_ATTEMPTS && !pause(200L * attempt)) {
                 break;
